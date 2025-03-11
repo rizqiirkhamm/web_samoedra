@@ -153,11 +153,6 @@
                   Sign In
               </button>
           </form>
-
-            <p class="text-center text-bgray-900 dark:text-bgray-50 text-base font-medium pt-7">
-              Don’t have an account?
-              <a href="signup.html" class="font-semibold underline">Sign Up</a>
-            </p>
             <nav
               class="flex items-center justify-center flex-wrap gap-x-11 pt-24"
             >
@@ -175,7 +170,7 @@
         <div class="lg:w-1/2 lg:block hidden bg-[#F6FAFF] dark:bg-darkblack-600 p-20 relative">
           <ul>
             <li class="absolute top-10 left-8">
-              <img src="assets/images/shapes/square.svg" alt="" />
+                <img src="assets/images/shapes/square.svg" alt="" />
             </li>
             <li class="absolute right-12 top-14">
               <img src="assets/images/shapes/vline.svg" alt="" />
@@ -196,7 +191,7 @@
               <h3
                 class="text-bgray-900 dark:text-white font-semibold font-popins text-4xl mb-4"
               >
-                Staff Page
+                Login Page
               </h3>
               <p class="text-bgray-600 dark:text-bgray-50 text-sm font-medium">
                 Samoedra. help you set saving goals, earn cash back offers, Go to
@@ -250,7 +245,7 @@
               </button>
             </div>
             <div>
-              <a href="signin.html" class="block mb-7">
+              <a href="{{ url('/register') }}" class="block mb-7">
                 <img src="assets/images/logo/logo-color.svg" class="block dark:hidden" alt="" />
                 <img src="assets/images/logo/logo-white.svg" class="hidden dark:block" alt="" />
               </a>
@@ -270,7 +265,7 @@
                   />
                 </div>
                 <a
-                  href="signin.html"
+                  href="{{ url('/login') }}"
                   class="block text-sm font-bold text-success-300 mb-8 underline"
                   >Return to login</a
                 >
