@@ -1,6 +1,81 @@
+document.addEventListener('DOMContentLoaded', function() {
+    // Total Earn Chart
+    function initTotalEarn() {
+        const totalEarnCanvas = document.getElementById("totalEarn");
+        if (!totalEarnCanvas) return;
 
+        const ctx = totalEarnCanvas.getContext("2d");
+        const data = {
+            labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+            datasets: [{
+                data: [20, 45, 30, 60, 40, 55],
+                borderColor: '#22C55E',
+                backgroundColor: function(context) {
+                    const gradient = ctx.createLinearGradient(0, 0, 0, 450);
+                    gradient.addColorStop(0, "rgba(34, 197, 94, 0.41)");
+                    gradient.addColorStop(0.2, "rgba(255, 255, 255, 0)");
+                    return gradient;
+                },
+                borderWidth: 1,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0
+            }]
+        };
 
+        new Chart(ctx, {
+            type: 'line',
+            data: data,
+            options: {
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { display: false },
+                    y: { display: false }
+                }
+            }
+        });
+    }
 
+    // Total Spending Chart
+    function initTotalSpending() {
+        const totalSpendingCanvas = document.getElementById("totalSpending");
+        if (!totalSpendingCanvas) return;
+
+        const ctx = totalSpendingCanvas.getContext("2d");
+        // Konfigurasi sama seperti totalEarn dengan data berbeda
+        // ...kode chart configuration...
+    }
+
+    // Total Goal Chart
+    function initTotalGoal() {
+        const totalGoalCanvas = document.getElementById("totalGoal");
+        if (!totalGoalCanvas) return;
+
+        const ctx = totalGoalCanvas.getContext("2d");
+        // Konfigurasi sama seperti totalEarn dengan data berbeda
+        // ...kode chart configuration...
+    }
+
+    // Revenue Flow Chart
+    function initRevenueFlow() {
+        const revenueFlowCanvas = document.getElementById("revenueFlow");
+        if (!revenueFlowCanvas) return;
+
+        const ctx = revenueFlowCanvas.getContext("2d");
+        // ...kode chart configuration...
+    }
+
+    // Initialize all charts
+    try {
+        initTotalEarn();
+        initTotalSpending();
+        initTotalGoal();
+        initRevenueFlow();
+    } catch (error) {
+        console.error("Error initializing charts:", error);
+    }
+});
 
 $(".card-slider").slick({
     dots: true,

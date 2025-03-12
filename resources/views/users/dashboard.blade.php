@@ -635,3 +635,10 @@
         </section>
     </div>
 @endsection
+
+@push('scripts')
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Dashboard specific scripts -->
+<script src="{{ asset('js/dashboard-users.js') }}"></script>
+@endpush

@@ -38,6 +38,12 @@
     <script src="{{ asset('js/main.js') }}"></script>
     <script src="{{ asset('js/chart.js') }}"></script>
     <script src="{{ asset('js/dashboard-users.js') }}"></script>
+
+    <!-- Common Scripts -->
+    <script src="{{ asset('js/common.js') }}"></script>
+    
+    <!-- Page Specific Scripts -->
+    @stack('scripts')
 </body>
 
 </html>

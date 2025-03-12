@@ -32,6 +32,8 @@
                         $PermissionBermain = App\Models\PermissionRoleModel::getPermission(Auth::user()->role_id, 'Bermain');
                         $PermissionBimbel = App\Models\PermissionRoleModel::getPermission(Auth::user()->role_id, 'Bimbel');
                         $PermissionBerita = App\Models\PermissionRoleModel::getPermission(Auth::user()->role_id, 'Berita');
+                        $PermissionLayanan = App\Models\PermissionRoleModel::getPermission(Auth::user()->role_id, 'Layanan');
+
                     @endphp
                     <li class="item py-[12px] text-bgrayr-900 dark:text-white">
                         <a href="{{ url('/dashboard') }}" class=" @if (Request::segment(1) != 'dashboard') @endif">
@@ -165,7 +167,7 @@
                     @endif
                     @if(!empty($PermissionLayanan))
                     <li class="item py-[12px] text-bgray-900 dark:text-white">
-                        <a href="{{ Route('list') }}" class=" @if (Request::segment(1) != 'layanan') @endif">
+                        <a href="{{ Route('layanan') }}" class=" @if (Request::segment(1) != 'layanan') @endif">
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center space-x-2.5">
                                     <span class="item-ico">
@@ -195,7 +197,7 @@
 <div style="z-index: 25" class="aside-overlay fixed left-0 top-0 block h-full w-full bg-black bg-opacity-30 sm:hidden">
 </div>
 
-{{-- <aside class="relative hidden w-[96px] bg-white dark:bg-black sm:block">
+<aside class="relative hidden w-[96px] bg-white dark:bg-black sm:block">
     <div class="sidebar-wrapper-collapse relative top-0 z-30 w-full">
         <div
             class="sidebar-header sticky top-0 z-20 flex h-[108px] w-full items-center justify-center border-b border-r border-b-[#F7F7F7] border-r-[#F7F7F7] bg-white dark:border-darkblack-500 dark:bg-darkblack-600">
@@ -245,4 +247,4 @@
 
         </div>
     </div>
-</aside> --}}
+</aside>

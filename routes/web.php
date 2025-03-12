@@ -7,7 +7,7 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\User\DashboardController;
-
+use App\Http\Controllers\LayananController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -39,13 +39,19 @@ Route::group(['middleware' => 'useradmin'], function() {
     Route::post('/user/edit/{id}', [UserController::class, 'update']);
     Route::get('/user/delete/{id}', [UserController::class, 'delete'])->name('delete');
 
-    Route::get('/bermain', [BermainController::class, 'index']) ->name('bermain');
+    Route::get('/bermain', [BermainController::class, 'index'])->name('bermain.index');
 
     Route::get('/bimbel', [BimbelController::class, 'index']) ->name('bimbel');
 
+    Route::get('/layanan', [LayananController::class, 'index']) ->name('layanan');
+
 });
 
+Route::get('/layanan', [LayananController::class, 'index'])->name('layanan');
+Route::post('/layanan', [LayananController::class, 'submit'])->name('layanan.submit');
 
+Route::post('/bermain', [BermainController::class, 'store'])->name('bermain.store');
+Route::post('/bermain/{id}/timer', [BermainController::class, 'updateTimer'])->name('bermain.timer');
 
 require __DIR__.'/auth.php';
 
