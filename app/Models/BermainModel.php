@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class BermainModel extends Model
 {
+    use HasFactory;
+
     // Specify the table name
     protected $table = 'bermain';
 
@@ -15,11 +18,9 @@ class BermainModel extends Model
         'age',
         'phone',
         'duration',
-        'selected_time',
-        'start_time',
-        'end_time',
+        'start_datetime',
+        'end_datetime',
         'day',
-        'date',
         'payment_proof',
         'status',
         'remaining_time'
@@ -27,11 +28,7 @@ class BermainModel extends Model
 
     // Cast attributes
     protected $casts = [
-        'date' => 'date',
-        'selected_time' => 'datetime',
-        'start_time' => 'datetime',
-        'end_time' => 'datetime',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime'
+        'start_datetime' => 'datetime',
+        'end_datetime' => 'datetime',
     ];
 }

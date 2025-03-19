@@ -39,7 +39,13 @@ Route::group(['middleware' => 'useradmin'], function() {
     Route::post('/user/edit/{id}', [UserController::class, 'update']);
     Route::get('/user/delete/{id}', [UserController::class, 'delete'])->name('delete');
 
-    Route::get('/bermain', [BermainController::class, 'index'])->name('bermain.index');
+    Route::prefix('bermain')->name('bermain.')->group(function () {
+        Route::get('/', [BermainController::class, 'index'])->name('index');
+        Route::post('/', [BermainController::class, 'store'])->name('store');
+        Route::post('/update-timer/{id}', [BermainController::class, 'updateTimer'])->name('update-timer');
+        Route::delete('/{id}', [BermainController::class, 'destroy'])->name('destroy');
+        Route::get('/search', [BermainController::class, 'search'])->name('search');
+    });
 
     Route::get('/bimbel', [BimbelController::class, 'index']) ->name('bimbel');
 
@@ -49,9 +55,6 @@ Route::group(['middleware' => 'useradmin'], function() {
 
 Route::get('/layanan', [LayananController::class, 'index'])->name('layanan');
 Route::post('/layanan', [LayananController::class, 'submit'])->name('layanan.submit');
-
-Route::post('/bermain', [BermainController::class, 'store'])->name('bermain.store');
-Route::post('/bermain/{id}/timer', [BermainController::class, 'updateTimer'])->name('bermain.timer');
 
 require __DIR__.'/auth.php';
 

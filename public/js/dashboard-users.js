@@ -87,7 +87,10 @@ $(".card-slider").slick({
     arrows: false,
   });
   function totalEarn() {
-    const ctx_bids = document.getElementById("totalEarn").getContext("2d");
+    const canvas = document.getElementById('totalEarn');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
     const bitsMonth = [
       "Jan",
       "Feb",
@@ -107,7 +110,7 @@ $(".card-slider").slick({
     const bitsData = [
       0, 10, 0, 65, 0, 25, 0, 35, 20, 100, 40, 75, 50, 85, 60,
     ];
-    const totalEarn = new Chart(ctx_bids, {
+    const totalEarn = new Chart(ctx, {
       type: "line",
       data: {
         labels: bitsMonth,

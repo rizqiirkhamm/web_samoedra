@@ -5,57 +5,43 @@ namespace App\Http\Controllers;
 use App\Models\BermainModel;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use App\Models\PermissionRoleModel;
+use Illuminate\Support\Facades\Auth;
 
 class BermainController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        // Update status untuk semua record yang waktunya sudah tiba
+        // Check permission untuk akses Bermain
+        $PermissionRole = PermissionRoleModel::getPermission(Auth::user()->role_id, 'Bermain');
+        if(empty($PermissionRole)){
+            abort(404);
+        }
+
+        // Get permission untuk Delete
+        $data['PermissionDelete'] = PermissionRoleModel::getPermission(Auth::user()->role_id, 'Delete Bermain');
+
+        // Update semua status terlebih dahulu
         $this->updateAllStatus();
         
-        $data = [
-            'total_active' => BermainModel::where('status', 'playing')->count(),
-            'total_today' => BermainModel::whereDate('created_at', today())->count(),
-            'total_all' => BermainModel::count(),
-            'bermain' => BermainModel::where('status', '!=', 'finished')
-                ->orderBy('created_at', 'desc')
-                ->get()
-                ->map(function($item) {
-                    $now = Carbon::now();
-                    $today = Carbon::today();
-                    $selectedTime = Carbon::parse($item->date)->setTimeFromTimeString($item->selected_time);
-                    
-                    if ($now->gte($selectedTime) && $item->status === 'waiting') {
-                        // Update status jika sudah waktunya
-                        $item->status = 'playing';
-                        $item->start_time = $item->selected_time;
-                        $endTime = $selectedTime->copy()->addHours($item->duration);
-                        $item->end_time = $endTime->format('H:i:s');
-                        $item->save();
-                    }
+        $perPage = $request->get('per_page', 3); // Default 3 items per page
+        $query = BermainModel::query();
+        
+        // Filter berdasarkan status jika ada
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
+        }
 
-                    if ($item->status === 'waiting') {
-                        $item->display_time = 'Belum Mulai';
-                        $item->remaining_time = 0;
-                    } else if ($item->status === 'playing') {
-                        $endTime = Carbon::parse($item->date)->setTimeFromTimeString($item->end_time);
-                        if ($now->gte($endTime)) {
-                            $item->status = 'finished';
-                            $item->remaining_time = 0;
-                            $item->display_time = 'Selesai';
-                            $item->save();
-                        } else {
-                            $item->remaining_time = $now->diffInSeconds($endTime, false);
-                            $item->display_time = gmdate('H:i:s', max(0, $item->remaining_time));
-                        }
-                    } else {
-                        $item->display_time = 'Selesai';
-                        $item->remaining_time = 0;
-                    }
-                    
-                    return $item;
-                })
-        ];
+        // Filter berdasarkan search jika ada
+        if ($request->has('search')) {
+            $query->where('name', 'LIKE', '%' . $request->search . '%');
+        }
+
+        $data['total_active'] = BermainModel::where('status', 'playing')->count();
+        $data['total_today'] = BermainModel::whereDate('created_at', today())->count();
+        $data['total_all'] = BermainModel::count();
+        $data['bermain'] = $query->orderBy('start_datetime', 'desc')->paginate($perPage);
+        $data['per_page'] = $perPage;
 
         return view('users.bermain', $data);
     }
@@ -64,36 +50,41 @@ class BermainController extends Controller
     {
         $now = Carbon::now();
         
-        // Update status waiting ke playing jika waktunya sudah tiba
+        // Update status waiting ke playing
         BermainModel::where('status', 'waiting')
-            ->get()
+            ->where('start_datetime', '<=', $now)
+            ->where('end_datetime', '>', $now)
             ->each(function($bermain) use ($now) {
-                $selectedTime = Carbon::parse($bermain->date)->setTimeFromTimeString($bermain->selected_time);
+                $bermain->status = 'playing';
+                $endDateTime = Carbon::parse($bermain->end_datetime);
+                $bermain->remaining_time = $now->diffInSeconds($endDateTime);
+                $bermain->save();
                 
-                if ($now->gte($selectedTime)) {
-                    $bermain->status = 'playing';
-                    $bermain->start_time = $bermain->selected_time;
-                    $endTime = $selectedTime->copy()->addHours($bermain->duration);
-                    $bermain->end_time = $endTime->format('H:i:s');
-                    $bermain->save();
-                }
+                \Log::info('Updated to playing:', [
+                    'id' => $bermain->id,
+                    'start' => $bermain->start_datetime,
+                    'end' => $bermain->end_datetime,
+                    'remaining_time' => $bermain->remaining_time
+                ]);
             });
 
-        // Update status playing ke finished jika waktu sudah habis
+        // Update status playing ke finished jika sudah selesai
         BermainModel::where('status', 'playing')
             ->get()
             ->each(function($bermain) use ($now) {
-                $endTime = Carbon::parse($bermain->date)->setTimeFromTimeString($bermain->end_time);
+                $endDateTime = Carbon::parse($bermain->end_datetime);
                 
-                if ($now->gte($endTime)) {
+                if ($now->gte($endDateTime)) {
                     $bermain->status = 'finished';
                     $bermain->remaining_time = 0;
                     $bermain->save();
-                } else {
-                    // Update remaining time untuk yang sedang playing
-                    $bermain->remaining_time = $now->diffInSeconds($endTime, false);
-                    $bermain->save();
                 }
+                
+                \Log::info('Updated playing status:', [
+                    'id' => $bermain->id,
+                    'status' => $bermain->status,
+                    'remaining_time' => $bermain->remaining_time
+                ]);
             });
     }
 
@@ -118,12 +109,20 @@ class BermainController extends Controller
         }
 
         // Set status dan waktu
+        $startDateTime = Carbon::parse($validated['date'] . ' ' . $validated['selected_time']);
+        $endDateTime = $startDateTime->copy()->addHours($validated['duration']);
+
         $validated['status'] = 'waiting';
-        $validated['start_time'] = null;
-        $validated['end_time'] = null;
+        $validated['start_datetime'] = $startDateTime;
+        $validated['end_datetime'] = $endDateTime;
         $validated['remaining_time'] = $validated['duration'] * 3600;
 
-        BermainModel::create($validated);
+        $bermain = BermainModel::create($validated);
+        \Log::info('New record created:', [
+            'id' => $bermain->id,
+            'start' => $bermain->start_datetime,
+            'end' => $bermain->end_datetime
+        ]);
 
         return redirect()->route('bermain.index')
             ->with('success', 'Reservasi berhasil dibuat!');
@@ -133,54 +132,104 @@ class BermainController extends Controller
     {
         $bermain = BermainModel::findOrFail($id);
         $now = Carbon::now();
-        $selectedTime = Carbon::parse($bermain->date)->setTimeFromTimeString($bermain->selected_time);
-        
-        // Check dan update status jika perlu
-        if ($now->gte($selectedTime) && $bermain->status === 'waiting') {
-            $bermain->status = 'playing';
-            $bermain->start_time = $bermain->selected_time;
-            $endTime = $selectedTime->copy()->addHours($bermain->duration);
-            $bermain->end_time = $endTime->format('H:i:s');
-            $bermain->save();
-        }
-        
-        // Jika masih waiting tapi belum waktunya
+
         if ($bermain->status === 'waiting') {
-            return response()->json([
-                'status' => 'waiting',
-                'message' => 'Belum waktunya bermain',
-                'remaining_time' => 0
-            ]);
+            if ($now->gte($bermain->start_datetime)) {
+                $bermain->status = 'playing';
+                $bermain->end_datetime = $bermain->start_datetime->copy()->addHours($bermain->duration);
+                $bermain->remaining_time = $bermain->duration * 3600;
+                $bermain->save();
+
+                return response()->json([
+                    'status' => 'playing',
+                    'remaining_time' => $bermain->remaining_time
+                ]);
+            }
+            return response()->json(['status' => 'waiting']);
         }
-        
-        // Jika sedang playing
+
         if ($bermain->status === 'playing') {
-            $endTime = Carbon::parse($bermain->date)->setTimeFromTimeString($bermain->end_time);
-            
-            if ($now->gte($endTime)) {
+            if ($now->gte($bermain->end_datetime)) {
                 $bermain->status = 'finished';
                 $bermain->remaining_time = 0;
                 $bermain->save();
-                
+
                 return response()->json([
                     'status' => 'finished',
                     'remaining_time' => 0
                 ]);
             }
-            
-            $remaining = $now->diffInSeconds($endTime, false);
-            $bermain->remaining_time = max(0, $remaining);
+
+            $bermain->remaining_time = $now->diffInSeconds($bermain->end_datetime);
             $bermain->save();
-            
+
             return response()->json([
                 'status' => 'playing',
-                'remaining_time' => $remaining
+                'remaining_time' => $bermain->remaining_time
             ]);
         }
 
         return response()->json([
             'status' => $bermain->status,
-            'remaining_time' => 0
+            'remaining_time' => $bermain->remaining_time
+        ]);
+    }
+
+    public function destroy($id)
+    {
+        // Check permission untuk Delete Bermain
+        $PermissionRole = PermissionRoleModel::getPermission(Auth::user()->role_id, 'Delete Bermain');
+        if(empty($PermissionRole)){
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $bermain = BermainModel::findOrFail($id);
+        $bermain->delete();
+
+        return response()->json(['message' => 'Data berhasil dihapus']);
+    }
+
+    public function search(Request $request)
+    {
+        $this->updateAllStatus();
+        
+        $perPage = $request->get('per_page', 3);
+        $query = $request->get('query');
+        
+        $results = BermainModel::where(function($q) use ($query) {
+            $q->where('name', 'LIKE', '%' . $query . '%')
+              ->orWhere('day', 'LIKE', '%' . $query . '%')
+              ->orWhere('start_datetime', 'LIKE', '%' . $query . '%');
+        });
+
+        if ($request->has('status') && $request->status !== 'all') {
+            $results->where('status', $request->status);
+        }
+
+        $paginated = $results->orderBy('start_datetime', 'desc')
+                            ->paginate($perPage);
+
+        // Format data sebelum dikirim ke response
+        $formattedData = collect($paginated->items())->map(function($item) {
+            return [
+                'id' => $item->id,
+                'name' => $item->name,
+                'age' => $item->age,
+                'day' => $item->day,
+                'start_datetime' => Carbon::parse($item->start_datetime)->format('Y-m-d H:i:s'),
+                'end_datetime' => Carbon::parse($item->end_datetime)->format('Y-m-d H:i:s'),
+                'status' => $item->status,
+                'duration' => $item->duration,
+                'remaining_time' => $item->remaining_time
+            ];
+        });
+
+        return response()->json([
+            'data' => $formattedData,
+            'current_page' => $paginated->currentPage(),
+            'last_page' => $paginated->lastPage(),
+            'per_page' => $perPage,
+            'total' => $paginated->total()
         ]);
     }
 }

@@ -61,7 +61,66 @@
 
             <!-- Dynamic Fields Container -->
             <div id="dynamic-fields" class="hidden">
-                <!-- Fields will be loaded here based on service type -->
+                <!-- Informasi Operasional -->
+                <div class="form-group animate-fade-in mb-4">
+                    <div class="p-4 bg-yellow-50 rounded-lg">
+                        <p class="text-yellow-800">
+                            <strong>Jam Operasional:</strong> 08:00 - 17:00 WIB
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Tanggal dan Waktu Mulai -->
+                <div class="form-group animate-fade-in">
+                    <label class="mb-2 block text-base font-medium text-bgray-600 dark:text-bgray-50">
+                        Tanggal Bermain
+                    </label>
+                    <input type="date" name="date" required min="{{ date('Y-m-d') }}"
+                           class="w-full rounded-lg border border-bgray-300 p-2.5">
+                </div>
+
+                <!-- Hari (Readonly) -->
+                <div class="form-group animate-fade-in">
+                    <label class="mb-2 block text-base font-medium text-bgray-600 dark:text-bgray-50">
+                        Hari
+                    </label>
+                    <input type="text" name="day_display" readonly required
+                           class="w-full rounded-lg border border-bgray-300 p-2.5 bg-gray-50 cursor-not-allowed">
+                    <input type="hidden" name="day" required>
+                </div>
+
+                <!-- Jam Mulai -->
+                <div class="form-group animate-fade-in">
+                    <label class="mb-2 block text-base font-medium text-bgray-600 dark:text-bgray-50">
+                        Jam Mulai
+                    </label>
+                    <input type="time" name="selected_time" required
+                           class="w-full rounded-lg border border-bgray-300 p-2.5">
+                </div>
+
+                <!-- Durasi Bermain -->
+                <div class="form-group animate-fade-in">
+                    <label class="mb-2 block text-base font-medium text-bgray-600 dark:text-bgray-50">
+                        Durasi Bermain
+                    </label>
+                    <select name="duration" required 
+                            class="w-full rounded-lg border border-bgray-300 p-2.5">
+                        <option value="">Pilih Durasi</option>
+                        <option value="1">1 Jam</option>
+                        <option value="2">2 Jam</option>
+                        <option value="3">3 Jam</option>
+                    </select>
+                </div>
+
+                <!-- Bukti Pembayaran -->
+                <div class="form-group animate-fade-in">
+                    <label class="mb-2 block text-base font-medium text-bgray-600 dark:text-bgray-50">
+                        Bukti Pembayaran
+                    </label>
+                    <input type="file" name="payment_proof" required 
+                           class="w-full rounded-lg border border-bgray-300 p-2.5"
+                           accept="image/png,image/jpeg,image/jpg">
+                </div>
             </div>
 
             <!-- Submit Button -->
@@ -84,7 +143,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const dynamicFields = document.getElementById('dynamic-fields');
     const previewImage = document.getElementById('preview-image');
     
-    // Update path gambar dengan menambahkan 'images/'
+    // Update path gambar
     const images = {
         'bermain': '{{ asset("images/avatar/bermain.png") }}',
         'bimbel': '{{ asset("images/avatar/bimbel.png") }}',
@@ -116,15 +175,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (service === 'bermain') {
             fields = `
-                <!-- Informasi Operasional -->
-                <div class="form-group animate-fade-in mb-4">
-                    <div class="p-4 bg-yellow-50 rounded-lg">
-                        <p class="text-yellow-800">
-                            <strong>Jam Operasional:</strong> 08:00 - 17:00 WIB
-                        </p>
-                    </div>
-                </div>
-
                 <!-- Tanggal Bermain -->
                 <div class="form-group animate-fade-in">
                     <label class="mb-2 block text-base font-medium text-bgray-600 dark:text-bgray-50">
@@ -134,13 +184,14 @@ document.addEventListener('DOMContentLoaded', function() {
                            class="w-full rounded-lg border border-bgray-300 p-2.5">
                 </div>
 
-                <!-- Hari -->
+                <!-- Hari (Readonly) -->
                 <div class="form-group animate-fade-in">
                     <label class="mb-2 block text-base font-medium text-bgray-600 dark:text-bgray-50">
                         Hari
                     </label>
-                    <input type="text" name="day" readonly required
-                           class="w-full rounded-lg border border-bgray-300 p-2.5 bg-gray-100 text-bgray-900 dark:border-darkblack-400 dark:bg-darkblack-500 dark:text-white">
+                    <input type="text" name="day_display" readonly required
+                           class="w-full rounded-lg border border-bgray-300 p-2.5 bg-gray-50 cursor-not-allowed">
+                    <input type="hidden" name="day" required>
                 </div>
 
                 <!-- Jam Mulai -->
@@ -218,16 +269,35 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
-        // Tambahkan di dalam function loadServiceFields setelah field tanggal
+        // Update event listener untuk tanggal
         const dateInput = dynamicFields.querySelector('input[name="date"]');
         const dayInput = dynamicFields.querySelector('input[name="day"]');
 
         if (dateInput && dayInput) {
             dateInput.addEventListener('change', function() {
                 const date = new Date(this.value);
-                const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+                const days = {
+                    0: 'Minggu',
+                    1: 'Senin',
+                    2: 'Selasa',
+                    3: 'Rabu',
+                    4: 'Kamis',
+                    5: 'Jumat',
+                    6: 'Sabtu'
+                };
                 const selectedDay = days[date.getDay()];
+                // Update both hidden and display inputs
                 dayInput.value = selectedDay;
+                document.querySelector('input[name="day_display"]').value = selectedDay;
+            });
+        }
+
+        // Di dalam event listener untuk input waktu
+        const timeInput = dynamicFields.querySelector('input[name="selected_time"]');
+        if (timeInput) {
+            timeInput.addEventListener('change', function() {
+                // Hapus validasi jam operasional
+                // Biarkan user memilih waktu apapun
             });
         }
     }

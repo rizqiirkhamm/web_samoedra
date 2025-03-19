@@ -6,11 +6,21 @@ use Illuminate\Database\Eloquent\Model;
 
 class LayananModel extends Model
 {
-    protected $table = 'layanan';
-
+    // Karena tidak ada database, kita bisa membuat method static untuk mendapatkan list layanan
     static public function getRecord()
     {
-        return self::select('id', 'nama_layanan', 'slug')
-                   ->get();
+        // Return array of available services
+        return [
+            [
+                'id' => 'bermain',
+                'nama_layanan' => 'Bermain',
+                'slug' => 'bermain'
+            ],
+            [
+                'id' => 'bimbel',
+                'nama_layanan' => 'Bimbel',
+                'slug' => 'bimbel'
+            ]
+        ];
     }
 }

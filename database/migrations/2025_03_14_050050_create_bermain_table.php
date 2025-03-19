@@ -17,11 +17,9 @@ class CreateBermainTable extends Migration
             $table->integer('age');
             $table->string('phone');
             $table->integer('duration'); // Durasi dalam jam
-            $table->time('selected_time'); // Jam yang dipilih client
-            $table->time('start_time')->nullable(); // Jam mulai aktual
-            $table->time('end_time')->nullable(); // Jam selesai
-            $table->enum('day', ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']);
-            $table->date('date');
+            $table->dateTime('start_datetime'); // Menggabungkan date dan time
+            $table->dateTime('end_datetime')->nullable();
+            $table->string('day'); // Hari akan dihitung dari start_datetime
             $table->string('payment_proof');
             $table->enum('status', ['waiting', 'playing', 'finished'])->default('waiting');
             $table->integer('remaining_time')->nullable(); // dalam detik

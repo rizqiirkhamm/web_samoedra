@@ -5,18 +5,45 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\BermainModel;
 use Carbon\Carbon;
+use App\Models\PermissionRoleModel;
+use Illuminate\Support\Facades\Auth;
+use App\Models\LayananModel;
 
 class LayananController extends Controller
 {
     public function index()
     {
-        return view('users.layanan');
+        // Check permission untuk akses Layanan
+        $PermissionRole = PermissionRoleModel::getPermission(Auth::user()->role_id, 'Layanan');
+        if(empty($PermissionRole)){
+            abort(404);
+        }
+
+        // Get permissions untuk masing-masing layanan
+        $data['PermissionBermain'] = PermissionRoleModel::getPermission(Auth::user()->role_id, 'Bermain');
+        $data['PermissionBimbel'] = PermissionRoleModel::getPermission(Auth::user()->role_id, 'Bimbel');
+        
+        // Get list layanan yang tersedia
+        $data['getRecord'] = LayananModel::getRecord();
+        
+        return view('users.layanan', $data);
     }
 
     public function submit(Request $request)
     {
+        // Cek permission berdasarkan service type yang dipilih
+        $servicePermission = PermissionRoleModel::getPermission(
+            Auth::user()->role_id, 
+            ucfirst($request->service_type)
+        );
+        
+        if(empty($servicePermission)){
+            return back()->with('error', 'Anda tidak memiliki akses ke layanan ini');
+        }
+
+        // Validasi request
         $request->validate([
-            'service_type' => 'required',
+            'service_type' => 'required|in:bermain,bimbel',
             'name' => 'required|string|max:255',
             'age' => 'required|integer|min:1',
             'phone' => 'required|string|max:15',
@@ -26,63 +53,65 @@ class LayananController extends Controller
             'payment_proof' => 'required_if:service_type,bermain|image|mimes:jpeg,png,jpg|max:2048'
         ]);
 
+        // Proses sesuai jenis layanan
         if ($request->service_type === 'bermain') {
-            // Convert duration to integer explicitly
+            // Buat instance Carbon dan simpan tanpa format dulu
+            $startDateTime = Carbon::parse($request->date . ' ' . $request->selected_time);
+            
+            // Konversi durasi ke integer
             $duration = (int) $request->duration;
             
-            // Parse selected time
-            $selectedTime = Carbon::parse($request->selected_time);
-            $endTime = (clone $selectedTime)->addHours($duration);
-            
-            // Validate operating hours (8:00 - 17:00)
-            // if ($selectedTime->format('H:i') < '08:00' || $endTime->format('H:i') > '17:00') {
-            //     return back()->with('error', 'Waktu bermain harus antara jam 08:00 - 17:00');
-            // }
+            // Buat copy dari startDateTime dan tambahkan durasi
+            $endDateTime = $startDateTime->copy()->addHours($duration);
+
+            // Tentukan status berdasarkan waktu saat ini
+            $now = Carbon::now();
+            $status = 'waiting';
+            $remainingTime = $duration * 3600; // Default remaining time dalam detik
+
+            if ($now->gte($startDateTime) && $now->lt($endDateTime)) {
+                $status = 'playing';
+                $remainingTime = $now->diffInSeconds($endDateTime);
+            } elseif ($now->gte($endDateTime)) {
+                $status = 'finished';
+                $remainingTime = 0;
+            }
+
+            \Log::info('DateTime calculation:', [
+                'start_datetime' => $startDateTime->format('Y-m-d H:i:s'),
+                'end_datetime' => $endDateTime->format('Y-m-d H:i:s'),
+                'current_time' => $now->format('Y-m-d H:i:s'),
+                'duration' => $duration,
+                'status' => $status,
+                'remaining_time' => $remainingTime
+            ]);
+
+            $data = [
+                'name' => $request->name,
+                'age' => $request->age,
+                'phone' => $request->phone,
+                'duration' => $duration,
+                'start_datetime' => $startDateTime->format('Y-m-d H:i:s'),
+                'end_datetime' => $endDateTime->format('Y-m-d H:i:s'),
+                'day' => $startDateTime->format('l'),
+                'status' => $status,
+                'remaining_time' => $remainingTime
+            ];
 
             // Handle file upload
             if ($request->hasFile('payment_proof')) {
                 $file = $request->file('payment_proof');
                 $filename = time() . '_' . $file->getClientOriginalName();
                 $file->storeAs('public/payment_proofs', $filename);
+                $data['payment_proof'] = $filename;
             }
 
-            // Get day name in Indonesian
-            $dayNames = [
-                'Sunday' => 'Minggu',
-                'Monday' => 'Senin',
-                'Tuesday' => 'Selasa',
-                'Wednesday' => 'Rabu',
-                'Thursday' => 'Kamis',
-                'Friday' => 'Jumat',
-                'Saturday' => 'Sabtu'
-            ];
+            $bermain = BermainModel::create($data);
             
-            $dayName = $dayNames[Carbon::parse($request->date)->format('l')];
-
-            // Set data sesuai dengan struktur database
-            $data = [
-                'name' => $request->name,
-                'age' => $request->age,
-                'phone' => $request->phone,
-                'duration' => $duration,
-                'selected_time' => $selectedTime->format('H:i:s'),
-                'start_time' => null,
-                'end_time' => null,
-                'day' => $dayName,
-                'date' => $request->date,
-                'payment_proof' => $filename ?? null,
-                'status' => 'waiting',
-                'remaining_time' => $duration * 3600
-            ];
-
-            // Create new bermain record
-            BermainModel::create($data);
-
             return redirect()->route('bermain.index')
                 ->with('success', 'Reservasi berhasil dibuat!');
         } 
         elseif ($request->service_type === 'bimbel') {
-            // Handle bimbel logic here
             return redirect()->route('bimbel.store')->withInput();
         }
 

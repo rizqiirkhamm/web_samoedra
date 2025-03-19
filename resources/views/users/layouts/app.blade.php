@@ -7,6 +7,9 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
     <title>@yield('title')</title>
 
+    <!-- Tambahkan CDN Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
     <!-- Menggunakan asset() Laravel untuk memanggil file CSS di public/css/ -->
     <link rel="stylesheet" href="{{ asset('css/slick.css') }}" />
     <link rel="stylesheet" href="{{ asset('css/aos.css') }}" />
@@ -37,7 +40,9 @@
     <script src="{{ asset('js/quill.min.js') }}"></script>
     <script src="{{ asset('js/main.js') }}"></script>
     <script src="{{ asset('js/chart.js') }}"></script>
-    <script src="{{ asset('js/dashboard-users.js') }}"></script>
+    @if(Route::currentRouteName() === 'dashboard')
+        <script src="{{ asset('js/dashboard-users.js') }}"></script>
+    @endif
 
     <!-- Common Scripts -->
     <script src="{{ asset('js/common.js') }}"></script>
